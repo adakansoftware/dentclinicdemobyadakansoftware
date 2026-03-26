@@ -5,8 +5,6 @@ import ServiceDetailClient from "@/components/public/ServiceDetailClient";
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
-
-
 export default async function ServiceDetailPage({
   params,
 }: {
@@ -14,7 +12,7 @@ export default async function ServiceDetailPage({
 }) {
   const { slug } = await params;
 
-  const row = await prisma.service.findUnique({
+  const row = await prisma.service.findFirst({
     where: { slug, isActive: true },
     include: {
       specialistServices: {
