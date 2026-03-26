@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 320" fill="none">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B7A75"/><stop offset="1" stop-color="#14384D"/></linearGradient></defs>
+<rect width="448" height="320" rx="28" fill="url(#bg)"/>
+<circle cx="360" cy="54" r="54" fill="#fff" fill-opacity=".11"/>
+<circle cx="84" cy="272" r="72" fill="#fff" fill-opacity=".08"/>
+<rect x="96" y="64" width="256" height="176" rx="36" fill="#fff" fill-opacity=".12"/>
+<path d='M224 120c-58 11-96 61-96 117 0 79 49 131 96 131 47 0 96-52 96-131 0-56-38-106-96-117Z' fill='white'/><path d='M224 194v84' stroke='#0B7A75' stroke-width='12' stroke-linecap='round'/><circle cx='224' cy='166' r='22' fill='#0B7A75'/>
+<rect x="72" y="258" width="304" height="34" rx="12" fill="#fff" fill-opacity=".88"/>
+<text x="224" y="281" text-anchor="middle" fill="#0B7A75" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Kanal Tedavisi</text>
+</svg>

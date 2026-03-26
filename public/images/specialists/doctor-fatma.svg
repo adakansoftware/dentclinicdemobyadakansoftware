@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" fill="none">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#EAF7FB"/><stop offset="1" stop-color="#D6EEF5"/></linearGradient></defs>
+<rect width="800" height="900" rx="36" fill="url(#g)"/>
+<circle cx="400" cy="310" r="144" fill="#ffffff" fill-opacity=".7"/>
+<circle cx="400" cy="305" r="108" fill="#F6D4C2"/>
+<path d="M252 682c0-88 61-164 149-183l56-12c104-22 201 57 201 164v95H252v-64Z" fill="#0B7A75"/>
+<path d="M266 275c11-94 73-151 167-151 85 0 151 43 171 113-38 17-84 25-130 21-68-6-138 5-208 17Z" fill="#204056"/>
+<circle cx="357" cy="296" r="10" fill="#2A2A2A"/><circle cx="443" cy="296" r="10" fill="#2A2A2A"/>
+<path d="M360 350c25 22 57 22 82 0" stroke="#B56E5B" stroke-width="8" stroke-linecap="round"/>
+<path d="M309 396c27 22 59 32 91 32 34 0 67-10 93-32" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
+<rect x="308" y="592" width="184" height="188" rx="22" fill="#fff" fill-opacity=".92"/>
+<path d="M400 588v192" stroke="#DDEEF3" stroke-width="8"/>
+<circle cx="400" cy="70" r="26" fill="#fff" fill-opacity=".9"/>
+<path d="M388 70h24M400 58v24" stroke="#0B7A75" stroke-width="7" stroke-linecap="round"/>
+<rect x="184" y="788" width="432" height="52" rx="18" fill="#fff" fill-opacity=".82"/>
+<text x="400" y="821" text-anchor="middle" fill="#204056" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Dr. Fatma Demir</text>
+</svg>

@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1a6b8a;
+  --color-accent: #f0a500;
+  --color-primary-dark: #145470;
+  --color-primary-light: #e8f4f8;
+  --surface: #ffffff;
+  --surface-soft: #f8fbfc;
+  --text-main: #162031;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at top left, rgba(26, 107, 138, 0.06), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(240, 165, 0, 0.08), transparent 24%),
+    #fff;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 18%, white);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  box-shadow: 0 10px 24px rgba(26, 107, 138, 0.18);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(26, 107, 138, 0.24);
+}
+
+.btn-accent {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300;
+  background: linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 68%, #ff7b00));
+  box-shadow: 0 10px 24px rgba(240, 165, 0, 0.2);
+}
+
+.btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(240, 165, 0, 0.26);
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 border;
+  border-color: color-mix(in srgb, var(--color-primary) 18%, white);
+  color: var(--color-primary);
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: blur(8px);
+}
+
+.btn-outline:hover {
+  background-color: var(--color-primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.section-title {
+  @apply text-3xl md:text-4xl font-bold text-gray-900 mb-4;
+  letter-spacing: -0.03em;
+}
+
+.section-subtitle {
+  @apply text-lg text-gray-600 max-w-2xl mx-auto;
+}
+
+.section-shell {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.card {
+  @apply bg-white rounded-3xl border border-slate-100 overflow-hidden transition-all duration-300;
+  box-shadow: 0 10px 30px rgba(12, 23, 36, 0.06);
+}
+
+.card:hover {
+  box-shadow: 0 18px 40px rgba(12, 23, 36, 0.1);
+  transform: translateY(-4px);
+}
+
+.card-soft {
+  @apply rounded-3xl border border-white/60;
+  background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.78));
+  box-shadow: 0 18px 40px rgba(15, 52, 77, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.hero-badge {
+  @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+}
+
+.premium-grid {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.glow-ring {
+  position: relative;
+}
+
+.glow-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.06));
+  z-index: -1;
+}
+
+.admin-sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors font-medium;
+}
+
+.admin-sidebar-link.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.form-input {
+  @apply w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 text-gray-900 bg-white transition;
+  --tw-ring-color: color-mix(in srgb, var(--color-primary) 24%, white);
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 mb-1.5;
+}
+
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-pending { @apply badge bg-yellow-100 text-yellow-800; }
+.badge-confirmed { @apply badge bg-green-100 text-green-800; }
+.badge-cancelled { @apply badge bg-red-100 text-red-800; }
+.badge-completed { @apply badge bg-blue-100 text-blue-800; }
+
+.floating-whatsapp {
+  @apply fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-xl;
+  background: linear-gradient(135deg, #25D366, #128C7E);
+}
+
+.stat-card {
+  @apply rounded-2xl px-5 py-4 text-left;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(10px);
+}
+
+.image-cover {
+  @apply w-full h-full object-cover object-center;
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 320" fill="none">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5A6B7D"/><stop offset="1" stop-color="#14384D"/></linearGradient></defs>
+<rect width="448" height="320" rx="28" fill="url(#bg)"/>
+<circle cx="360" cy="54" r="54" fill="#fff" fill-opacity=".11"/>
+<circle cx="84" cy="272" r="72" fill="#fff" fill-opacity=".08"/>
+<rect x="96" y="64" width="256" height="176" rx="36" fill="#fff" fill-opacity=".12"/>
+<path d='M136 146h176c18 0 32 14 32 32v56c0 18-14 32-32 32H136c-18 0-32-14-32-32v-56c0-18 14-32 32-32Z' fill='white' fill-opacity='.18'/><path d='M132 210c18 18 34 26 92 26s74-8 92-26' stroke='white' stroke-width='12' stroke-linecap='round'/>
+<rect x="72" y="258" width="304" height="34" rx="12" fill="#fff" fill-opacity=".88"/>
+<text x="224" y="281" text-anchor="middle" fill="#5A6B7D" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Protez</text>
+</svg>
