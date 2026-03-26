@@ -2,16 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import ServiceDetailClient from "@/components/public/ServiceDetailClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
-export async function generateStaticParams() {
-  const services = await prisma.service.findMany({
-    where: { isActive: true },
-    select: { slug: true },
-  });
 
-  return services.map((s) => ({ slug: s.slug }));
-}
 
 export default async function ServiceDetailPage({
   params,
