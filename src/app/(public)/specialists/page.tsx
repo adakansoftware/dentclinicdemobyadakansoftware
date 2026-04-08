@@ -1,28 +1,62 @@
-import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
 import SpecialistsClient from "@/components/public/SpecialistsClient";
+import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
+import { buildPublicPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
 
 export const revalidate = 60;
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return buildPublicPageMetadata({
+    settings,
+    title: `Uzman Kadro | ${settings.clinicName}`,
+    description: `${settings.clinicName} uzman doktor kadrosunu inceleyin.`,
+    path: "/specialists",
+  });
+}
 
 export default async function SpecialistsPage() {
-  const rows = await prisma.specialist.findMany({
-    where: { isActive: true },
-    orderBy: { order: "asc" },
-    include: { specialistServices: { include: { service: true } } },
-  });
+  const rows = await safeQuery(
+    "specialists list",
+    () =>
+      prisma.specialist.findMany({
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+        include: { specialistServices: { include: { service: true } } },
+      }),
+    []
+  );
 
-  const specialists = rows.map((sp) => ({
-    id: sp.id, slug: sp.slug, nameTr: sp.nameTr, nameEn: sp.nameEn,
-    titleTr: sp.titleTr, titleEn: sp.titleEn,
-    biographyTr: sp.biographyTr, biographyEn: sp.biographyEn,
-    photoUrl: sp.photoUrl, order: sp.order, isActive: sp.isActive,
-    specialistServices: sp.specialistServices.map((ss) => ({
+  const specialists = rows.map((specialist) => ({
+    id: specialist.id,
+    slug: specialist.slug,
+    nameTr: specialist.nameTr,
+    nameEn: specialist.nameEn,
+    titleTr: specialist.titleTr,
+    titleEn: specialist.titleEn,
+    biographyTr: specialist.biographyTr,
+    biographyEn: specialist.biographyEn,
+    photoUrl: specialist.photoUrl,
+    order: specialist.order,
+    isActive: specialist.isActive,
+    specialistServices: specialist.specialistServices.map((specialistService) => ({
       service: {
-        id: ss.service.id, slug: ss.service.slug,
-        nameTr: ss.service.nameTr, nameEn: ss.service.nameEn,
-        shortDescTr: ss.service.shortDescTr, shortDescEn: ss.service.shortDescEn,
-        descriptionTr: ss.service.descriptionTr, descriptionEn: ss.service.descriptionEn,
-        iconName: ss.service.iconName, durationMinutes: ss.service.durationMinutes,
-        order: ss.service.order, isActive: ss.service.isActive,
+        id: specialistService.service.id,
+        slug: specialistService.service.slug,
+        nameTr: specialistService.service.nameTr,
+        nameEn: specialistService.service.nameEn,
+        shortDescTr: specialistService.service.shortDescTr,
+        shortDescEn: specialistService.service.shortDescEn,
+        descriptionTr: specialistService.service.descriptionTr,
+        descriptionEn: specialistService.service.descriptionEn,
+        iconName: specialistService.service.iconName,
+        durationMinutes: specialistService.service.durationMinutes,
+        order: specialistService.service.order,
+        isActive: specialistService.service.isActive,
       },
     })),
   }));

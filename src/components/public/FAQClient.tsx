@@ -3,45 +3,70 @@
 import { useState } from "react";
 import { useLang } from "@/context/LangContext";
 import { t } from "@/lib/translations";
+import PageHero from "@/components/shared/PageHero";
+
 import type { FAQData } from "@/types";
 
-interface Props { faqs: FAQData[]; }
+interface Props {
+  faqs: FAQData[];
+}
 
 export default function FAQClient({ faqs }: Props) {
   const { lang } = useLang();
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(faqs[0]?.id ?? null);
 
   return (
     <>
-      <div className="py-16 text-center text-white" style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-dark, #145470))" }}>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">{t("faq", "title", lang)}</h1>
-        <p className="text-white/80 text-lg">{t("faq", "subtitle", lang)}</p>
-      </div>
+      <PageHero
+        kicker="FAQ"
+        title={t("faq", "title", lang)}
+        subtitle={t("faq", "subtitle", lang)}
+        minimal
+      >
+        <div className="hero-panel hero-panel--compact p-6 text-sm leading-relaxed text-[color:var(--text-secondary)]">
+          {lang === "tr" ? "Sik sorulan basliklar daha sakin bir okuma akisi ile listelenir." : "Frequently asked topics are listed in a calmer reading flow."}
+        </div>
+      </PageHero>
 
-      <section className="py-16">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          {faqs.length === 0 ? (
-            <p className="text-center text-gray-500">{lang === "tr" ? "Henüz SSS eklenmemiş." : "No FAQ items yet."}</p>
-          ) : (
-            <div className="space-y-3">
-              {faqs.map((faq) => (
-                <div key={faq.id} className="card">
-                  <button
-                    onClick={() => setOpen(open === faq.id ? null : faq.id)}
-                    className="w-full text-left px-6 py-5 flex items-center justify-between gap-4 font-semibold text-gray-900"
-                  >
-                    <span>{lang === "tr" ? faq.questionTr : faq.questionEn}</span>
-                    <span className="text-2xl transition-transform shrink-0" style={{ transform: open === faq.id ? "rotate(45deg)" : "rotate(0)" }}>+</span>
-                  </button>
-                  {open === faq.id && (
-                    <div className="px-6 pb-5 text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
-                      {lang === "tr" ? faq.answerTr : faq.answerEn}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+      <section className="section-block">
+        <div className="section-shell">
+          <div className="mx-auto max-w-4xl">
+            {faqs.length === 0 ? (
+              <div className="surface-panel p-10 text-center text-[color:var(--text-secondary)]">
+                {lang === "tr" ? "Henuz SSS eklenmemis." : "No FAQ items yet."}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {faqs.map((faq, index) => {
+                  const active = open === faq.id;
+
+                  return (
+                    <article key={faq.id} className="surface-panel overflow-hidden">
+                      <button onClick={() => setOpen(active ? null : faq.id)} className="flex w-full items-start justify-between gap-4 px-6 py-6 text-left">
+                        <div>
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
+                            {String(index + 1).padStart(2, "0")}
+                          </div>
+                          <div className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[color:var(--text-primary)]">
+                            {lang === "tr" ? faq.questionTr : faq.questionEn}
+                          </div>
+                        </div>
+                        <span className="mt-1 text-sm uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
+                          {active ? (lang === "tr" ? "Kapat" : "Close") : lang === "tr" ? "Ac" : "Open"}
+                        </span>
+                      </button>
+
+                      {active ? (
+                        <div className="border-t border-[rgba(217,210,200,0.84)] px-6 pb-6 pt-5 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
+                          {lang === "tr" ? faq.answerTr : faq.answerEn}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </>

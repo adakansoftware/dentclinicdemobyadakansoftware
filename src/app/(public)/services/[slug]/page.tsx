@@ -1,9 +1,54 @@
-import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ServiceDetailClient from "@/components/public/ServiceDetailClient";
+import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
+import { buildPublicPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const [settings, row] = await Promise.all([
+    getSiteSettings(),
+    safeQuery(
+      `service metadata ${slug}`,
+      () =>
+        prisma.service.findFirst({
+          where: { slug, isActive: true },
+          select: {
+            nameTr: true,
+            shortDescTr: true,
+            imageUrl: true,
+          },
+        }),
+      null
+    ),
+  ]);
+
+  if (!row) {
+    return buildPublicPageMetadata({
+      settings,
+      title: `Hizmet Bulunamadı | ${settings.clinicName}`,
+      description: settings.seoDescTr,
+      path: `/services/${slug}`,
+    });
+  }
+
+  return buildPublicPageMetadata({
+    settings,
+    title: `${row.nameTr} | ${settings.clinicName}`,
+    description: row.shortDescTr,
+    path: `/services/${slug}`,
+    imageUrl: row.imageUrl,
+  });
+}
 
 export default async function ServiceDetailPage({
   params,
@@ -12,28 +57,35 @@ export default async function ServiceDetailPage({
 }) {
   const { slug } = await params;
 
-  const row = await prisma.service.findFirst({
-    where: { slug, isActive: true },
-    include: {
-      specialistServices: {
+  const row = await safeQuery(
+    `service detail ${slug}`,
+    () =>
+      prisma.service.findFirst({
+        where: { slug, isActive: true },
         include: {
-          specialist: {
-            select: {
-              id: true,
-              slug: true,
-              nameTr: true,
-              nameEn: true,
-              titleTr: true,
-              titleEn: true,
-              photoUrl: true,
+          specialistServices: {
+            include: {
+              specialist: {
+                select: {
+                  id: true,
+                  slug: true,
+                  nameTr: true,
+                  nameEn: true,
+                  titleTr: true,
+                  titleEn: true,
+                  photoUrl: true,
+                },
+              },
             },
           },
         },
-      },
-    },
-  });
+      }),
+    null
+  );
 
-  if (!row) notFound();
+  if (!row) {
+    notFound();
+  }
 
   const service = {
     id: row.id,
@@ -47,10 +99,22 @@ export default async function ServiceDetailPage({
     iconName: row.iconName,
     durationMinutes: row.durationMinutes,
     imageUrl: row.imageUrl,
-    specialistServices: row.specialistServices.map((ss) => ({
-      specialist: ss.specialist,
+    specialistServices: row.specialistServices.map((specialistService) => ({
+      specialist: specialistService.specialist,
     })),
   };
 
-  return <ServiceDetailClient service={service} />;
+  const serviceJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "MedicalProcedure",
+    name: row.nameTr,
+    description: row.shortDescTr,
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }} />
+      <ServiceDetailClient service={service} />
+    </>
+  );
 }

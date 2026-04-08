@@ -1,5 +1,21 @@
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  compareDateStrings,
+  getCurrentMinutesInTurkey,
+  getDayOfWeekFromDate,
+  getTodayDateInTurkey,
+  getUtcRangeForTurkeyDate,
+} from "@/lib/date";
 import type { TimeSlot } from "@/types";
+
+type SlotDb = PrismaClient | Prisma.TransactionClient;
+const globalSlotCache = globalThis as typeof globalThis & {
+  __adakanSlotsCache?: Map<string, { expiresAt: number; slots: TimeSlot[] }>;
+};
+const slotsCache = globalSlotCache.__adakanSlotsCache ?? new Map<string, { expiresAt: number; slots: TimeSlot[] }>();
+globalSlotCache.__adakanSlotsCache = slotsCache;
+const SLOTS_CACHE_TTL_MS = 15_000;
 
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
@@ -12,14 +28,14 @@ function minutesToTime(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-export async function getAvailableSlots(
+export async function getAvailableSlotsFromDb(
+  db: SlotDb,
   specialistId: string,
   dateStr: string
 ): Promise<TimeSlot[]> {
-  const date = new Date(dateStr);
-  const dayOfWeek = date.getDay();
+  const dayOfWeek = getDayOfWeekFromDate(dateStr);
 
-  const workingHour = await prisma.workingHour.findUnique({
+  const workingHour = await db.workingHour.findUnique({
     where: { specialistId_dayOfWeek: { specialistId, dayOfWeek } },
   });
 
@@ -27,34 +43,42 @@ export async function getAvailableSlots(
     return [];
   }
 
-  const blockedSlots = await prisma.blockedSlot.findMany({
-    where: {
-      specialistId,
-      date: {
-        gte: new Date(dateStr + "T00:00:00.000Z"),
-        lte: new Date(dateStr + "T23:59:59.999Z"),
-      },
-    },
-  });
+  const { startUtc, endUtc } = getUtcRangeForTurkeyDate(dateStr);
 
-  const bookedAppointments = await prisma.appointment.findMany({
-    where: {
-      specialistId,
-      date: {
-        gte: new Date(dateStr + "T00:00:00.000Z"),
-        lte: new Date(dateStr + "T23:59:59.999Z"),
+  const [blockedSlots, bookedAppointments] = await Promise.all([
+    db.blockedSlot.findMany({
+      where: {
+        specialistId,
+        date: {
+          gte: startUtc,
+          lte: endUtc,
+        },
       },
-      status: { notIn: ["CANCELLED"] },
-    },
-  });
+    }),
+    db.appointment.findMany({
+      where: {
+        specialistId,
+        date: {
+          gte: startUtc,
+          lte: endUtc,
+        },
+        status: { notIn: ["CANCELLED"] },
+      },
+    }),
+  ]);
 
   const startMin = timeToMinutes(workingHour.startTime);
   const endMin = timeToMinutes(workingHour.endTime);
   const slotMin = workingHour.slotMinutes;
 
-  const now = new Date();
-  const isToday = dateStr === now.toISOString().split("T")[0];
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  if (slotMin <= 0 || endMin <= startMin) {
+    return [];
+  }
+
+  const todayInTurkey = getTodayDateInTurkey();
+  const currentMinutes = getCurrentMinutesInTurkey();
+  const isPastDate = compareDateStrings(dateStr, todayInTurkey) < 0;
+  const isToday = dateStr === todayInTurkey;
 
   const slots: TimeSlot[] = [];
 
@@ -63,24 +87,21 @@ export async function getAvailableSlots(
     const startTime = minutesToTime(start);
     const endTime = minutesToTime(end);
 
-    // Past time check
-    if (isToday && start <= currentMinutes) {
+    if (isPastDate || (isToday && start <= currentMinutes)) {
       slots.push({ startTime, endTime, available: false });
       continue;
     }
 
-    // Blocked check
-    const isBlocked = blockedSlots.some((b) => {
-      const bStart = timeToMinutes(b.startTime);
-      const bEnd = timeToMinutes(b.endTime);
-      return start < bEnd && end > bStart;
+    const isBlocked = blockedSlots.some((blockedSlot) => {
+      const blockedStart = timeToMinutes(blockedSlot.startTime);
+      const blockedEnd = timeToMinutes(blockedSlot.endTime);
+      return start < blockedEnd && end > blockedStart;
     });
 
-    // Booked check
-    const isBooked = bookedAppointments.some((a) => {
-      const aStart = timeToMinutes(a.startTime);
-      const aEnd = timeToMinutes(a.endTime);
-      return start < aEnd && end > aStart;
+    const isBooked = bookedAppointments.some((appointment) => {
+      const appointmentStart = timeToMinutes(appointment.startTime);
+      const appointmentEnd = timeToMinutes(appointment.endTime);
+      return start < appointmentEnd && end > appointmentStart;
     });
 
     slots.push({ startTime, endTime, available: !isBlocked && !isBooked });
@@ -89,14 +110,47 @@ export async function getAvailableSlots(
   return slots;
 }
 
+export async function getAvailableSlots(
+  specialistId: string,
+  dateStr: string
+): Promise<TimeSlot[]> {
+  const key = `${specialistId}:${dateStr}`;
+  const now = Date.now();
+  const cached = slotsCache.get(key);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.slots;
+  }
+
+  for (const [cacheKey, entry] of slotsCache.entries()) {
+    if (entry.expiresAt <= now) {
+      slotsCache.delete(cacheKey);
+    }
+  }
+
+  const slots = await getAvailableSlotsFromDb(prisma, specialistId, dateStr);
+  slotsCache.set(key, { slots, expiresAt: now + SLOTS_CACHE_TTL_MS });
+  return slots;
+}
+
+export async function checkSlotAvailabilityWithDb(
+  db: SlotDb,
+  specialistId: string,
+  dateStr: string,
+  startTime: string,
+  endTime: string
+): Promise<boolean> {
+  const slots = await getAvailableSlotsFromDb(db, specialistId, dateStr);
+  return slots.some(
+    (slot) => slot.startTime === startTime && slot.endTime === endTime && slot.available
+  );
+}
+
 export async function checkSlotAvailability(
   specialistId: string,
   dateStr: string,
   startTime: string,
   endTime: string
 ): Promise<boolean> {
-  const slots = await getAvailableSlots(specialistId, dateStr);
-  return slots.some(
-    (s) => s.startTime === startTime && s.endTime === endTime && s.available
-  );
+  return checkSlotAvailabilityWithDb(prisma, specialistId, dateStr, startTime, endTime);
 }

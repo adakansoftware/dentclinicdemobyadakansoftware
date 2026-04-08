@@ -1,8 +1,24 @@
-import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
 import AppointmentClient from "@/components/public/AppointmentClient";
+import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
+import { buildPublicPageMetadata } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/settings";
 import type { ServiceData } from "@/types";
 
 export const revalidate = 0;
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+
+  return buildPublicPageMetadata({
+    settings,
+    title: `Online Randevu | ${settings.clinicName}`,
+    description: "Diş kliniği randevunuzu hızlı ve güvenli şekilde oluşturun.",
+    path: "/appointment",
+  });
+}
 
 export default async function AppointmentPage({
   searchParams,
@@ -12,27 +28,42 @@ export default async function AppointmentPage({
   const params = await searchParams;
 
   const [svcRows, spRows] = await Promise.all([
-    prisma.service.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
-    prisma.specialist.findMany({
-      where: { isActive: true },
-      orderBy: { order: "asc" },
-      include: { specialistServices: { select: { serviceId: true } } },
-    }),
+    safeQuery("appointment services", () => prisma.service.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }), []),
+    safeQuery(
+      "appointment specialists",
+      () =>
+        prisma.specialist.findMany({
+          where: { isActive: true },
+          orderBy: { order: "asc" },
+          include: { specialistServices: { select: { serviceId: true } } },
+        }),
+      []
+    ),
   ]);
 
-  const services: ServiceData[] = svcRows.map((s) => ({
-    id: s.id, slug: s.slug, nameTr: s.nameTr, nameEn: s.nameEn,
-    shortDescTr: s.shortDescTr, shortDescEn: s.shortDescEn,
-    descriptionTr: s.descriptionTr, descriptionEn: s.descriptionEn,
-    iconName: s.iconName, durationMinutes: s.durationMinutes,
-    order: s.order, isActive: s.isActive,
+  const services: ServiceData[] = svcRows.map((service) => ({
+    id: service.id,
+    slug: service.slug,
+    nameTr: service.nameTr,
+    nameEn: service.nameEn,
+    shortDescTr: service.shortDescTr,
+    shortDescEn: service.shortDescEn,
+    descriptionTr: service.descriptionTr,
+    descriptionEn: service.descriptionEn,
+    iconName: service.iconName,
+    durationMinutes: service.durationMinutes,
+    order: service.order,
+    isActive: service.isActive,
   }));
 
-  const specialists = spRows.map((sp) => ({
-    id: sp.id, nameTr: sp.nameTr, nameEn: sp.nameEn,
-    titleTr: sp.titleTr, titleEn: sp.titleEn,
-    photoUrl: sp.photoUrl,
-    specialistServices: sp.specialistServices,
+  const specialists = spRows.map((specialist) => ({
+    id: specialist.id,
+    nameTr: specialist.nameTr,
+    nameEn: specialist.nameEn,
+    titleTr: specialist.titleTr,
+    titleEn: specialist.titleEn,
+    photoUrl: specialist.photoUrl,
+    specialistServices: specialist.specialistServices,
   }));
 
   return (

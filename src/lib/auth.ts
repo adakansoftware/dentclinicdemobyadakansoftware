@@ -1,11 +1,17 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
+import { cache } from "react";
 
 const SESSION_COOKIE = "admin_session";
 const SESSION_DURATION_DAYS = 7;
+
+function hashSessionToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 export async function createSession(adminId: string): Promise<string> {
   const token = randomBytes(32).toString("hex");
@@ -13,7 +19,7 @@ export async function createSession(adminId: string): Promise<string> {
   expiresAt.setDate(expiresAt.getDate() + SESSION_DURATION_DAYS);
 
   await prisma.adminSession.create({
-    data: { token, adminId, expiresAt },
+    data: { token: hashSessionToken(token), adminId, expiresAt },
   });
 
   return token;
@@ -35,23 +41,50 @@ export async function getSessionToken(): Promise<string | null> {
   return cookieStore.get(SESSION_COOKIE)?.value ?? null;
 }
 
-export async function getAdminFromSession() {
+const getAdminFromSessionCached = cache(async () => {
   const token = await getSessionToken();
   if (!token) return null;
 
-  const session = await prisma.adminSession.findUnique({
-    where: { token },
-    include: { admin: true },
-  });
+  const hashedToken = hashSessionToken(token);
+  const session = await safeQuery(
+    "admin session lookup",
+    () =>
+      prisma.adminSession.findFirst({
+        where: {
+          OR: [{ token: hashedToken }, { token }],
+        },
+        include: { admin: true },
+      }),
+    null,
+    { timeoutMs: 3000, shouldLog: false }
+  );
 
   if (!session || session.expiresAt < new Date()) {
     if (session) {
-      await prisma.adminSession.delete({ where: { token } });
+      await safeQuery("delete expired admin session", () => prisma.adminSession.delete({ where: { id: session.id } }), null, {
+        shouldLog: false,
+      });
     }
     return null;
   }
 
+  if (session.token === token) {
+    await safeQuery(
+      "upgrade legacy admin session token",
+      () =>
+        prisma.adminSession.update({
+          where: { id: session.id },
+          data: { token: hashedToken },
+        }),
+      null
+    );
+  }
+
   return session.admin;
+});
+
+export async function getAdminFromSession() {
+  return getAdminFromSessionCached();
 }
 
 export async function requireAdmin() {
@@ -65,7 +98,18 @@ export async function requireAdmin() {
 export async function destroySession() {
   const token = await getSessionToken();
   if (token) {
-    await prisma.adminSession.deleteMany({ where: { token } });
+    const hashedToken = hashSessionToken(token);
+    await safeQuery(
+      "destroy admin session",
+      () =>
+        prisma.adminSession.deleteMany({
+          where: {
+            OR: [{ token }, { token: hashedToken }],
+          },
+        }),
+      null,
+      { shouldLog: false }
+    );
   }
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);

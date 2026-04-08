@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
 import type { SiteSettings } from "@/types";
 
 const DEFAULT_SETTINGS: SiteSettings = {
@@ -25,14 +26,12 @@ const DEFAULT_SETTINGS: SiteSettings = {
   seoTitleEn: "DentaCare Clinic",
   seoDescTr: "Gaziantep diş kliniği",
   seoDescEn: "Gaziantep dental clinic",
-  primaryColor: "#1a6b8a",
-  accentColor: "#f0a500",
   logoUrl: "",
   faviconUrl: "",
 };
 
 export async function getSiteSettings(): Promise<SiteSettings> {
-  const rows = await prisma.siteSetting.findMany();
+  const rows = await safeQuery("site settings", () => prisma.siteSetting.findMany(), []);
   const map: Record<string, string> = {};
   for (const row of rows) {
     map[row.key] = row.value;
@@ -62,8 +61,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     seoTitleEn: map.seoTitleEn ?? DEFAULT_SETTINGS.seoTitleEn,
     seoDescTr: map.seoDescTr ?? DEFAULT_SETTINGS.seoDescTr,
     seoDescEn: map.seoDescEn ?? DEFAULT_SETTINGS.seoDescEn,
-    primaryColor: map.primaryColor ?? DEFAULT_SETTINGS.primaryColor,
-    accentColor: map.accentColor ?? DEFAULT_SETTINGS.accentColor,
     logoUrl: map.logoUrl ?? DEFAULT_SETTINGS.logoUrl,
     faviconUrl: map.faviconUrl ?? DEFAULT_SETTINGS.faviconUrl,
   };

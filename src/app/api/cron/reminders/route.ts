@@ -1,22 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSiteSettings } from "@/lib/settings";
-import { sendSms, buildReminderMessage } from "@/lib/sms";
+import { buildReminderMessage, sendSms } from "@/lib/sms";
+import { getEnv } from "@/lib/env";
+import { dateToIsoDate, getTomorrowDateInTurkey, getUtcRangeForTurkeyDate } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
+  const env = getEnv();
+  const cronSecret = env.CRON_SECRET;
+
+  if (env.NODE_ENV === "production" && !cronSecret) {
+    return NextResponse.json({ error: "CRON_SECRET is required in production" }, { status: 500 });
+  }
+
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  const tomorrowEnd = new Date(tomorrow);
-  tomorrowEnd.setHours(23, 59, 59, 999);
+  const tomorrowDate = getTomorrowDateInTurkey();
+  const { startUtc: tomorrow, endUtc: tomorrowEnd } = getUtcRangeForTurkeyDate(tomorrowDate);
 
   const appointments = await prisma.appointment.findMany({
     where: {
@@ -33,7 +38,7 @@ export async function GET(request: Request) {
 
   for (const apt of appointments) {
     try {
-      const dateStr = apt.date.toISOString().split("T")[0] ?? "";
+      const dateStr = dateToIsoDate(apt.date);
       const message = buildReminderMessage(
         apt.patientLanguage,
         apt.patientName,
@@ -67,6 +72,6 @@ export async function GET(request: Request) {
     total: appointments.length,
     sent,
     failed,
-    date: tomorrow.toISOString().split("T")[0],
+    date: tomorrowDate,
   });
 }

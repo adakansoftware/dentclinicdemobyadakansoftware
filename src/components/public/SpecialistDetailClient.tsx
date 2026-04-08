@@ -1,18 +1,34 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useLang } from "@/context/LangContext";
-import { t } from "@/lib/translations";
+import SectionIntro from "@/components/shared/SectionIntro";
+import PageHero from "@/components/shared/PageHero";
 
-interface ServiceItem { id: string; nameTr: string; nameEn: string; slug: string; }
+interface ServiceItem {
+  id: string;
+  nameTr: string;
+  nameEn: string;
+  slug: string;
+}
+
 interface SpecialistWithServices {
-  id: string; slug: string; nameTr: string; nameEn: string;
-  titleTr: string; titleEn: string; biographyTr: string; biographyEn: string;
+  id: string;
+  slug: string;
+  nameTr: string;
+  nameEn: string;
+  titleTr: string;
+  titleEn: string;
+  biographyTr: string;
+  biographyEn: string;
   photoUrl: string;
   specialistServices: { service: ServiceItem }[];
 }
 
-interface Props { specialist: SpecialistWithServices; }
+interface Props {
+  specialist: SpecialistWithServices;
+}
 
 export default function SpecialistDetailClient({ specialist: sp }: Props) {
   const { lang } = useLang();
@@ -20,57 +36,88 @@ export default function SpecialistDetailClient({ specialist: sp }: Props) {
   const name = lang === "tr" ? sp.nameTr : sp.nameEn;
   const title = lang === "tr" ? sp.titleTr : sp.titleEn;
   const bio = lang === "tr" ? sp.biographyTr : sp.biographyEn;
+  const notes = [
+    lang === "tr" ? "Tedavi yaklasimi bireysel muayene ile sekillenir." : "Treatment approach is shaped through individual consultation.",
+    lang === "tr" ? "Uzmanlik alanlari ilgili hizmetlerle birlikte sunulur." : "Areas of expertise are presented together with related services.",
+    lang === "tr" ? "Randevu ve on bilgi talepleri icin klinik iletisimi aciktir." : "Clinic communication remains open for booking and preliminary questions.",
+  ];
 
   return (
     <>
-      <div className="py-16 text-white" style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))" }}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 grid lg:grid-cols-[280px_1fr] gap-8 items-center">
-          <div className="rounded-[32px] overflow-hidden bg-white/10 border border-white/10">
-            {sp.photoUrl ? <img src={sp.photoUrl} alt={name} className="w-full h-[320px] object-cover" /> : <div className="h-[320px] grid place-items-center text-6xl">👨‍⚕️</div>}
-          </div>
-          <div>
-            <div className="hero-badge mb-5">Specialist Profile</div>
-            <h1 className="text-3xl md:text-5xl font-bold mb-3">{name}</h1>
-            <p className="text-white/80 text-lg">{title}</p>
+      <PageHero kicker={lang === "tr" ? "Uzman Profil" : "Specialist Profile"} title={name} subtitle={title}>
+        <div className="hero-panel p-3 md:p-4">
+          <div className="media-frame">
+            {sp.photoUrl ? (
+              <Image
+                src={sp.photoUrl}
+                alt={name}
+                width={1600}
+                height={800}
+                sizes="(max-width: 1024px) 100vw, 60vw"
+                className="h-[380px] w-full object-cover"
+                unoptimized={sp.photoUrl.startsWith("data:")}
+              />
+            ) : (
+              <div className="grid h-[380px] place-items-center text-sm uppercase tracking-[0.2em] text-[color:var(--accent-main)]">
+                Portrait
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </PageHero>
 
-      <section className="py-16">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2">
-              <div className="card p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  {lang === "tr" ? "Biyografi" : "Biography"}
-                </h2>
-                <p className="text-gray-700 leading-relaxed">{bio}</p>
+      <section className="section-block">
+        <div className="section-shell">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.06fr)_minmax(19rem,0.94fr)]">
+            <div className="space-y-8">
+              <div className="editorial-panel p-8 md:p-10">
+                <SectionIntro title={lang === "tr" ? `${name} hakkinda genel bilgi` : `General information about ${name}`} />
+                <p className="whitespace-pre-line text-base leading-relaxed text-[color:var(--text-secondary)] md:text-lg">{bio}</p>
+              </div>
 
-                <div className="mt-8">
-                  <Link href={`/appointment?specialist=${sp.id}`} className="btn-primary">
-                    {t("specialists", "bookWith", lang)}
-                  </Link>
-                </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {notes.map((note, index) => (
+                  <div key={note} className="card p-6">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
+                      {`0${index + 1}`}
+                    </div>
+                    <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)]">{note}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div>
-              {sp.specialistServices.length > 0 && (
-                <div className="card p-5">
-                  <h3 className="font-bold text-gray-900 mb-4">{t("specialists", "services", lang)}</h3>
-                  <ul className="space-y-2">
+            <div className="space-y-6 lg:sticky lg:top-28">
+              {sp.specialistServices.length > 0 ? (
+                <div className="surface-panel p-6">
+                  <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
+                    {lang === "tr" ? "Ilgili Hizmetler" : "Related Services"}
+                  </div>
+                  <div className="space-y-3">
                     {sp.specialistServices.map(({ service }) => (
-                      <li key={service.id}>
-                        <Link href={`/services/${service.slug}`}
-                          className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition-colors">
-                          <span>🦷</span>
-                          <span>{lang === "tr" ? service.nameTr : service.nameEn}</span>
-                        </Link>
-                      </li>
+                      <Link key={service.id} href={`/services/${service.slug}`} className="contact-line">
+                        <div className="font-medium text-[color:var(--text-primary)]">{lang === "tr" ? service.nameTr : service.nameEn}</div>
+                      </Link>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-              )}
+              ) : null}
+
+              <div className="editorial-panel p-6">
+                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">
+                  {lang === "tr"
+                    ? "Randevu ya da on bilgi icin klinigimizle iletisime gecebilirsiniz"
+                    : "Contact the clinic for an appointment or preliminary information"}
+                </h3>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link href={`/appointment?specialist=${sp.id}`} className="btn-primary">
+                    {lang === "tr" ? "Online Randevu" : "Book Appointment"}
+                  </Link>
+                  <Link href="/contact" className="btn-ghost">
+                    {lang === "tr" ? "Iletisim" : "Contact"}
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>

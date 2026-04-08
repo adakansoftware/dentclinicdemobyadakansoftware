@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { getEnv } from "@/lib/env";
 
-const SMS_ENABLED = process.env.SMS_ENABLED === "true";
+const SMS_ENABLED = getEnv().SMS_ENABLED === "true";
 
 interface SmsOptions {
   phone: string;
@@ -52,9 +53,10 @@ export function buildCancellationMessage(
 }
 
 async function sendNetgsm(phone: string, message: string): Promise<string> {
-  const username = process.env.NETGSM_USERNAME ?? "";
-  const password = process.env.NETGSM_PASSWORD ?? "";
-  const header = process.env.NETGSM_HEADER ?? "KLINIK";
+  const env = getEnv();
+  const username = env.NETGSM_USERNAME ?? "";
+  const password = env.NETGSM_PASSWORD ?? "";
+  const header = env.NETGSM_HEADER ?? "KLINIK";
 
   const cleanPhone = phone.replace(/\D/g, "").replace(/^0/, "90").replace(/^90/, "90");
 
@@ -65,7 +67,7 @@ async function sendNetgsm(phone: string, message: string): Promise<string> {
   url.searchParams.set("message", message);
   url.searchParams.set("msgheader", header);
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), { cache: "no-store" });
   const text = await response.text();
   const parts = text.trim().split(" ");
   const code = parts[0];
@@ -73,6 +75,7 @@ async function sendNetgsm(phone: string, message: string): Promise<string> {
   if (code === "00" || code === "01" || code === "02") {
     return parts[1] ?? "sent";
   }
+
   throw new Error(`Netgsm error: ${text}`);
 }
 

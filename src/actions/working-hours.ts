@@ -3,17 +3,25 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { dateOnlyToDbDate } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 
-const workingHourSchema = z.object({
-  specialistId: z.string().min(1),
-  dayOfWeek: z.coerce.number().min(0).max(6),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/),
-  slotMinutes: z.coerce.number().min(15).max(120),
-  isOpen: z.string().transform((v) => v === "true"),
-});
+const timeSchema = z.string().regex(/^\d{2}:\d{2}$/);
+
+const workingHourSchema = z
+  .object({
+    specialistId: z.string().min(1),
+    dayOfWeek: z.coerce.number().min(0).max(6),
+    startTime: timeSchema,
+    endTime: timeSchema,
+    slotMinutes: z.coerce.number().min(15).max(120),
+    isOpen: z.string().transform((v) => v === "true"),
+  })
+  .refine((data) => !data.isOpen || data.startTime < data.endTime, {
+    message: "Bitiş saati başlangıçtan sonra olmalı",
+    path: ["endTime"],
+  });
 
 export async function upsertWorkingHourAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireAdmin();
@@ -36,13 +44,18 @@ export async function upsertWorkingHourAction(_prev: ActionResult, formData: For
   return { success: true };
 }
 
-const blockedSlotSchema = z.object({
-  specialistId: z.string().min(1),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/),
-  reason: z.string().max(200).optional(),
-});
+const blockedSlotSchema = z
+  .object({
+    specialistId: z.string().min(1),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    startTime: timeSchema,
+    endTime: timeSchema,
+    reason: z.string().max(200).optional(),
+  })
+  .refine((data) => data.startTime < data.endTime, {
+    message: "Bitiş saati başlangıçtan sonra olmalı",
+    path: ["endTime"],
+  });
 
 export async function createBlockedSlotAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   await requireAdmin();
@@ -57,7 +70,7 @@ export async function createBlockedSlotAction(_prev: ActionResult, formData: For
   await prisma.blockedSlot.create({
     data: {
       specialistId: parsed.data.specialistId,
-      date: new Date(parsed.data.date),
+      date: dateOnlyToDbDate(parsed.data.date),
       startTime: parsed.data.startTime,
       endTime: parsed.data.endTime,
       reason: parsed.data.reason ?? "",

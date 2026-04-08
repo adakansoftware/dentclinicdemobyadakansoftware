@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
 
 export default async function AdminDashboard() {
   await requireAdmin();
@@ -13,16 +14,21 @@ export default async function AdminDashboard() {
   weekEnd.setDate(weekEnd.getDate() + 7);
 
   const [todayCount, weekCount, pendingCount, recentAppointments, unreadContacts] = await Promise.all([
-    prisma.appointment.count({ where: { date: { gte: today, lte: todayEnd } } }),
-    prisma.appointment.count({ where: { date: { gte: today, lte: weekEnd } } }),
-    prisma.appointment.count({ where: { status: "PENDING" } }),
-    prisma.appointment.findMany({
-      where: { date: { gte: today } },
-      orderBy: { date: "asc" },
-      take: 5,
-      include: { service: true, specialist: true },
-    }),
-    prisma.contactRequest.count({ where: { isRead: false } }),
+    safeQuery("admin today count", () => prisma.appointment.count({ where: { date: { gte: today, lte: todayEnd } } }), 0),
+    safeQuery("admin week count", () => prisma.appointment.count({ where: { date: { gte: today, lte: weekEnd } } }), 0),
+    safeQuery("admin pending count", () => prisma.appointment.count({ where: { status: "PENDING" } }), 0),
+    safeQuery(
+      "admin recent appointments",
+      () =>
+        prisma.appointment.findMany({
+          where: { date: { gte: today } },
+          orderBy: { date: "asc" },
+          take: 5,
+          include: { service: true, specialist: true },
+        }),
+      []
+    ),
+    safeQuery("admin unread contacts", () => prisma.contactRequest.count({ where: { isRead: false } }), 0),
   ]);
 
   const statusColors: Record<string, string> = {
@@ -40,19 +46,25 @@ export default async function AdminDashboard() {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Dashboard</h1>
+    <div className="space-y-8">
+      <div className="surface-panel p-7 md:p-8 overflow-hidden relative">
+        <div className="absolute inset-y-0 right-0 w-72 bg-cyan-400/10 blur-3xl" />
+        <div className="relative z-10">
+          <div className="text-xs uppercase tracking-[0.22em] text-slate-400 font-semibold mb-3">Operasyon Özeti</div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-[-0.04em] mb-2">Dashboard</h1>
+          <p className="text-slate-600">Günlük yoğunluğu ve önemli klinik aksiyonlarını tek bakışta takip edin.</p>
+        </div>
+      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Bugünkü Randevular", value: todayCount, icon: "📅", color: "#1a6b8a" },
           { label: "Bu Hafta", value: weekCount, icon: "📆", color: "#0891b2" },
           { label: "Bekleyen", value: pendingCount, icon: "⏳", color: "#d97706" },
           { label: "Okunmamış Mesaj", value: unreadContacts, icon: "✉️", color: "#7c3aed" },
         ].map((stat) => (
-          <div key={stat.label} className="card p-5 flex items-center gap-4">
-            <div className="text-3xl">{stat.icon}</div>
+          <div key={stat.label} className="surface-panel p-5 flex items-center gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-slate-50 text-3xl">{stat.icon}</div>
             <div>
               <p className="text-3xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
               <p className="text-sm text-gray-500 mt-0.5">{stat.label}</p>
@@ -61,14 +73,13 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Recent appointments */}
-      <div className="card">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Yaklaşan Randevular</h2>
+      <div className="surface-panel overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900 text-lg tracking-[-0.02em]">Yaklaşan Randevular</h2>
           <a href="/admin/appointments" className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>Tümünü Gör →</a>
         </div>
         {recentAppointments.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500 text-sm">Yaklaşan randevu yok</div>
+          <div className="px-6 py-10 text-center text-gray-500 text-sm">Yaklaşan randevu yok</div>
         ) : (
           <div className="divide-y divide-gray-50">
             {recentAppointments.map((apt) => (

@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
 import AdminSpecialistsClient from "@/components/admin/AdminSpecialistsClient";
 import type { ServiceData } from "@/types";
 
@@ -8,11 +9,16 @@ export const dynamic = "force-dynamic";
 export default async function AdminSpecialistsPage() {
   await requireAdmin();
   const [rows, svcRows] = await Promise.all([
-    prisma.specialist.findMany({
-      orderBy: { order: "asc" },
-      include: { specialistServices: { include: { service: true } } },
-    }),
-    prisma.service.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
+    safeQuery(
+      "admin specialists",
+      () =>
+        prisma.specialist.findMany({
+          orderBy: { order: "asc" },
+          include: { specialistServices: { include: { service: true } } },
+        }),
+      []
+    ),
+    safeQuery("admin active services", () => prisma.service.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }), []),
   ]);
 
   const services: ServiceData[] = svcRows.map((s) => ({

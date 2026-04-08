@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
 import AdminBlockedSlotsClient from "@/components/admin/AdminBlockedSlotsClient";
 
 export const dynamic = "force-dynamic";
@@ -7,11 +8,16 @@ export const dynamic = "force-dynamic";
 export default async function AdminBlockedSlotsPage() {
   await requireAdmin();
   const [spRows, bsRows] = await Promise.all([
-    prisma.specialist.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
-    prisma.blockedSlot.findMany({
-      orderBy: [{ date: "desc" }, { startTime: "asc" }],
-      include: { specialist: { select: { nameTr: true } } },
-    }),
+    safeQuery("admin blocked slot specialists", () => prisma.specialist.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }), []),
+    safeQuery(
+      "admin blocked slots",
+      () =>
+        prisma.blockedSlot.findMany({
+          orderBy: [{ date: "desc" }, { startTime: "asc" }],
+          include: { specialist: { select: { nameTr: true } } },
+        }),
+      []
+    ),
   ]);
 
   const specialists = spRows.map((sp) => ({ id: sp.id, nameTr: sp.nameTr }));

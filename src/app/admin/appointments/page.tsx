@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeQuery } from "@/lib/safe-query";
 import AppointmentsClient from "@/components/admin/AppointmentsClient";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +22,16 @@ export default async function AppointmentsPage({
     ];
   }
 
-  const rows = await prisma.appointment.findMany({
-    where,
-    orderBy: [{ date: "desc" }, { startTime: "desc" }],
-    include: { service: true, specialist: true },
-  });
+  const rows = await safeQuery(
+    "admin appointments list",
+    () =>
+      prisma.appointment.findMany({
+        where,
+        orderBy: [{ date: "desc" }, { startTime: "desc" }],
+        include: { service: true, specialist: true },
+      }),
+    []
+  );
 
   const appointments = rows.map((a) => ({
     id: a.id,

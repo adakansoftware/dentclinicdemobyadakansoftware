@@ -24,8 +24,6 @@ export interface SiteSettings {
   seoTitleEn: string;
   seoDescTr: string;
   seoDescEn: string;
-  primaryColor: string;
-  accentColor: string;
   logoUrl: string;
   faviconUrl: string;
 }
@@ -109,6 +107,21 @@ export interface ReviewData {
   isApproved: boolean;
   isVisible: boolean;
   createdAt: string;
+  authorUrl?: string;
+  authorPhotoUrl?: string;
+  sourceUrl?: string;
+  sourceLabel?: string;
+  relativeDateTr?: string;
+  relativeDateEn?: string;
+}
+
+export interface PublicReviewsData {
+  reviews: ReviewData[];
+  source: "google" | "internal";
+  placeName?: string;
+  placeUrl?: string;
+  averageRating?: number;
+  totalReviews?: number;
 }
 
 export interface FAQData {
@@ -138,8 +151,7 @@ export interface TimeSlot {
   available: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface ActionResult<T = any> {
+export interface ActionResult<T = unknown> {
   success: boolean;
   error?: string;
   data?: T;

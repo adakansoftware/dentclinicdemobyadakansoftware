@@ -2,19 +2,27 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { createSession, setSessionCookie, destroySession, verifyPassword } from "@/lib/auth";
+import { createSession, destroySession, setSessionCookie, verifyPassword } from "@/lib/auth";
+import { verifyTurnstileToken } from "@/lib/bot-protection";
+import { enforceRateLimit, getRequestFingerprint, validateFormAge, validateHoneypot } from "@/lib/security";
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/types";
 
 const loginSchema = z.object({
-  email: z.string().email("Geçerli bir e-posta girin"),
+  email: z.string().trim().email("Geçerli bir e-posta girin"),
   password: z.string().min(1, "Şifre gereklidir"),
 });
 
-export async function loginAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
+export async function loginAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  if (!validateHoneypot(formData) || !validateFormAge(formData)) {
+    return { success: false, error: "İstek doğrulanamadı. Lütfen tekrar deneyin." };
+  }
+
+  const turnstileValid = await verifyTurnstileToken(formData.get("cf-turnstile-response"));
+  if (!turnstileValid) {
+    return { success: false, error: "Bot doğrulaması başarısız oldu. Lütfen tekrar deneyin." };
+  }
+
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -24,8 +32,20 @@ export async function loginAction(
     return { success: false, error: parsed.error.errors[0]?.message ?? "Hata" };
   }
 
+  const loginKey = `${parsed.data.email.toLowerCase()}:${await getRequestFingerprint()}`;
+  const allowed = await enforceRateLimit({
+    scope: "admin-login",
+    limit: 5,
+    windowMs: 15 * 60 * 1000,
+    keySuffix: loginKey,
+  });
+
+  if (!allowed) {
+    return { success: false, error: "Çok fazla giriş denemesi yapıldı. Lütfen biraz sonra tekrar deneyin." };
+  }
+
   const admin = await prisma.adminUser.findUnique({
-    where: { email: parsed.data.email },
+    where: { email: parsed.data.email.toLowerCase() },
   });
 
   if (!admin) {

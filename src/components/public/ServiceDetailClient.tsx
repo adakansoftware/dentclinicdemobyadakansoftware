@@ -1,9 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useLang } from "@/context/LangContext";
+import SectionIntro from "@/components/shared/SectionIntro";
 import { t } from "@/lib/translations";
 import { getServiceImage } from "@/lib/service-images";
+import PageHero from "@/components/shared/PageHero";
 
 interface SpecialistItem {
   specialist: {
@@ -41,123 +44,109 @@ export default function ServiceDetailClient({ service }: Props) {
 
   const name = lang === "tr" ? service.nameTr : service.nameEn;
   const description = lang === "tr" ? service.descriptionTr : service.descriptionEn;
+  const shortDescription = lang === "tr" ? service.shortDescTr : service.shortDescEn;
+  const notes = [
+    lang === "tr" ? "Tedavi kapsami muayene sonrasinda netlestirilir." : "The exact treatment scope is clarified after consultation.",
+    lang === "tr" ? "Sure ve planlama hasta ihtiyacina gore sekillenir." : "Duration and planning are shaped around patient needs.",
+    lang === "tr" ? "Randevu oncesi on bilgi icin klinikle iletisime gecebilirsiniz." : "You can contact the clinic for preliminary information before booking.",
+  ];
 
   return (
     <>
-      <div
-        className="py-16 text-white"
-        style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))" }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-[1fr_1.1fr] gap-8 items-center">
-          <div className="rounded-[32px] overflow-hidden bg-white/10 border border-white/10">
-            <img
+      <PageHero kicker={lang === "tr" ? "Hizmet Detayi" : "Service Detail"} title={name} subtitle={shortDescription}>
+        <div className="hero-panel p-3 md:p-4">
+          <div className="media-frame">
+            <Image
               src={service.imageUrl || getServiceImage(service.slug)}
               alt={name}
-              className="w-full h-[280px] object-cover"
+              width={1600}
+              height={760}
+              sizes="(max-width: 1024px) 100vw, 60vw"
+              className="h-[360px] w-full object-cover"
+              unoptimized={Boolean(service.imageUrl?.startsWith("data:"))}
             />
           </div>
-
-          <div>
-            <div className="hero-badge mb-5">
-              {lang === "tr" ? "Hizmet Detayı" : "Service Detail"}
-            </div>
-
-            <h1 className="text-3xl md:text-5xl font-bold mb-4">{name}</h1>
-
-            <p className="text-white/80 text-lg leading-relaxed mb-6">
-              {lang === "tr" ? service.shortDescTr : service.shortDescEn}
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              <span className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 border border-white/10 text-sm font-medium">
-                {t("services", "duration", lang)}: {service.durationMinutes} {t("services", "minutes", lang)}
-              </span>
-
-              <Link href={`/appointment?service=${service.id}`} className="btn-accent">
-                {t("services", "bookNow", lang)}
-              </Link>
-            </div>
-          </div>
         </div>
-      </div>
+      </PageHero>
 
-      <section className="py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2">
-              <div className="card p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                  {lang === "tr" ? "Hizmet Açıklaması" : "Service Description"}
-                </h2>
+      <section className="section-block">
+        <div className="section-shell">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.06fr)_minmax(19rem,0.94fr)]">
+            <div className="space-y-8">
+              <div className="editorial-panel p-8 md:p-10">
+                <SectionIntro title={lang === "tr" ? `${name} hakkinda genel bilgi` : `General information about ${name}`} />
+                <p className="whitespace-pre-line text-base leading-relaxed text-[color:var(--text-secondary)] md:text-lg">{description}</p>
+              </div>
 
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                  {description}
-                </p>
-
-                <div className="mt-8">
-                  <Link href={`/appointment?service=${service.id}`} className="btn-primary">
-                    {t("services", "bookNow", lang)}
-                  </Link>
-                </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {notes.map((note, index) => (
+                  <div key={note} className="card p-6">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
+                      {`0${index + 1}`}
+                    </div>
+                    <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)]">{note}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="space-y-6">
-              {service.specialistServices.length > 0 && (
-                <div className="card p-5">
-                  <h3 className="font-bold text-gray-900 mb-4">
-                    {lang === "tr" ? "Bu Hizmeti Veren Uzmanlar" : "Specialists for This Service"}
-                  </h3>
-
-                  <ul className="space-y-4">
-                    {service.specialistServices.map(({ specialist }) => (
-                      <li key={specialist.id}>
-                        <Link
-                          href={`/specialists/${specialist.slug}`}
-                          className="flex items-center gap-3 hover:bg-gray-50 rounded-xl p-2 transition-colors"
-                        >
-                          <div className="w-14 h-14 rounded-full overflow-hidden bg-slate-100 shrink-0">
-                            {specialist.photoUrl ? (
-                              <img
-                                src={specialist.photoUrl}
-                                alt={lang === "tr" ? specialist.nameTr : specialist.nameEn}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full grid place-items-center text-xl">👨‍⚕️</div>
-                            )}
-                          </div>
-
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {lang === "tr" ? specialist.nameTr : specialist.nameEn}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {lang === "tr" ? specialist.titleTr : specialist.titleEn}
-                            </p>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+            <div className="space-y-6 lg:sticky lg:top-28">
+              <div className="editorial-panel p-6">
+                <div className="space-y-3">
+                  <div className="summary-row">
+                    <span className="text-[color:var(--text-secondary)]">{lang === "tr" ? "Tahmini sure" : "Estimated duration"}</span>
+                    <strong className="text-[color:var(--text-primary)]">
+                      {service.durationMinutes} {t("services", "minutes", lang)}
+                    </strong>
+                  </div>
+                  <div className="summary-row">
+                    <span className="text-[color:var(--text-secondary)]">{lang === "tr" ? "Planlama" : "Planning"}</span>
+                    <span className="text-[color:var(--text-primary)]">
+                      {lang === "tr" ? "Muayene ve degerlendirme sonrasinda" : "After consultation and evaluation"}
+                    </span>
+                  </div>
                 </div>
-              )}
 
-              <div className="card p-5">
-                <h3 className="font-bold text-gray-900 mb-4">
-                  {lang === "tr" ? "Hızlı İşlemler" : "Quick Actions"}
-                </h3>
-
-                <div className="flex flex-col gap-3">
-                  <Link href={`/appointment?service=${service.id}`} className="btn-primary text-center">
-                    {t("services", "bookNow", lang)}
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link href={`/appointment?service=${service.id}`} className="btn-primary">
+                    {lang === "tr" ? "Online Randevu" : "Book Appointment"}
                   </Link>
-
-                  <Link href="/services" className="btn-outline text-center">
-                    {lang === "tr" ? "Tüm Hizmetler" : "All Services"}
+                  <Link href="/contact" className="btn-ghost">
+                    {lang === "tr" ? "Iletisim" : "Contact"}
                   </Link>
                 </div>
               </div>
+
+              {service.specialistServices.length > 0 ? (
+                <div className="surface-panel p-6">
+                  <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">
+                    {lang === "tr" ? "Ilgili Uzmanlar" : "Related Specialists"}
+                  </div>
+                  <div className="space-y-4">
+                    {service.specialistServices.map(({ specialist }) => (
+                      <Link key={specialist.id} href={`/specialists/${specialist.slug}`} className="contact-line">
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[color:var(--surface-muted)]">
+                          {specialist.photoUrl ? (
+                            <Image
+                              src={specialist.photoUrl}
+                              alt={lang === "tr" ? specialist.nameTr : specialist.nameEn}
+                              width={56}
+                              height={56}
+                              sizes="56px"
+                              className="h-full w-full object-cover"
+                              unoptimized={specialist.photoUrl.startsWith("data:")}
+                            />
+                          ) : null}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-[color:var(--text-primary)]">{lang === "tr" ? specialist.nameTr : specialist.nameEn}</div>
+                          <div className="mt-1 text-sm text-[color:var(--text-secondary)]">{lang === "tr" ? specialist.titleTr : specialist.titleEn}</div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

@@ -1,66 +1,108 @@
 "use client";
 
 import { useLang } from "@/context/LangContext";
+import SectionIntro from "@/components/shared/SectionIntro";
 import { t } from "@/lib/translations";
+import PageHero from "@/components/shared/PageHero";
 import type { SiteSettings } from "@/types";
 
-interface Props { settings: SiteSettings; }
+interface Props {
+  settings: SiteSettings;
+}
 
 export default function AboutClient({ settings }: Props) {
   const { lang } = useLang();
 
   const title = lang === "tr" ? settings.aboutTitleTr : settings.aboutTitleEn;
   const text = lang === "tr" ? settings.aboutTextTr : settings.aboutTextEn;
-  const clinicName = lang === "tr" ? settings.clinicName : settings.clinicNameEn;
 
-  const featureList = [
+  const values = [
     {
-      icon: "🏆",
-      title: lang === "tr" ? "10+ Yıl Deneyim" : "10+ Years Experience",
-      desc: lang === "tr" ? "Yılların verdiği deneyimle en iyi tedaviyi sunuyoruz." : "We offer the best treatment with years of experience.",
+      number: "01",
+      title: lang === "tr" ? "Kisiye uygun planlama" : "Personal planning",
+      desc:
+        lang === "tr"
+          ? "Muayene bulgulari ve beklentiler birlikte degerlendirilir."
+          : "Clinical findings and patient expectations are reviewed together.",
     },
     {
-      icon: "🔬",
-      title: lang === "tr" ? "Modern Teknoloji" : "Modern Technology",
-      desc: lang === "tr" ? "Son teknoloji cihazlarla doğru teşhis ve tedavi." : "Accurate diagnosis and treatment with state-of-the-art equipment.",
+      number: "02",
+      title: lang === "tr" ? "Acik iletisim" : "Clear communication",
+      desc:
+        lang === "tr"
+          ? "Surec boyunca duzenli, sakin ve anlasilir bir dil korunur."
+          : "Communication remains calm, consistent, and easy to understand throughout the process.",
     },
     {
-      icon: "👨‍⚕️",
-      title: lang === "tr" ? "Uzman Kadro" : "Expert Team",
-      desc: lang === "tr" ? "Alanında uzman deneyimli hekimlerimiz." : "Our experienced specialist doctors.",
-    },
-    {
-      icon: "💙",
-      title: lang === "tr" ? "Hasta Konforu" : "Patient Comfort",
-      desc: lang === "tr" ? "Steril ortam, rahat bekleme alanı, güler yüz." : "Sterile environment, comfortable waiting area, friendly staff.",
+      number: "03",
+      title: lang === "tr" ? "Hasta konforu" : "Patient comfort",
+      desc:
+        lang === "tr"
+          ? "Hijyen, duzen ve psikolojik rahatlik klinik deneyimin bir parcasi olarak ele alinir."
+          : "Hygiene, order, and emotional comfort are treated as part of the clinical experience.",
     },
   ];
 
   return (
     <>
-      <div className="py-16 text-center text-white" style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-dark, #145470))" }}>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">{title}</h1>
-        <p className="text-white/80 text-lg">{clinicName}</p>
-      </div>
+      <PageHero
+        kicker={lang === "tr" ? "Hakkimizda" : "About"}
+        title={title}
+        subtitle={
+          lang === "tr"
+            ? "Klinigimiz; ozenli iletisim, planli bakim ve guven duygusunu merkeze alan bir anlayisla ilerler."
+            : "Our clinic follows an approach centered on attentive communication, structured care, and trust."
+        }
+        minimal
+      >
+        <div className="hero-panel hero-panel--compact p-6 text-sm leading-relaxed text-[color:var(--text-secondary)]">
+          {lang === "tr" ? "Sadelik, duzen ve klinik ciddiyeti ayni cizgide bulusturan bir yaklasim." : "An approach that brings simplicity, order, and clinical seriousness into the same line."}
+        </div>
+      </PageHero>
 
-      <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="text-xl text-gray-700 leading-relaxed text-center">{text}</p>
+      <section className="section-block">
+        <div className="section-shell">
+          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="editorial-panel p-8 md:p-10">
+              <SectionIntro
+                title={
+                  lang === "tr"
+                    ? "Guven, duzen ve acik iletisim bakim deneyiminin temeli"
+                    : "Trust, structure, and clear communication are the foundation of the care experience"
+                }
+              />
+              <p className="whitespace-pre-line text-base leading-relaxed text-[color:var(--text-secondary)] md:text-lg">{text}</p>
+            </div>
+
+            <div className="grid gap-5">
+              {values.map((item) => (
+                <article key={item.title} className="card p-7">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-main)]">{item.number}</div>
+                  <h3 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--text-primary)]">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">{item.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="section-title text-center mb-12">{t("about", "whyUs", lang)}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featureList.map((f) => (
-              <div key={f.title} className="card p-6 text-center">
-                <div className="text-4xl mb-4">{f.icon}</div>
-                <h3 className="font-bold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-600">{f.desc}</p>
-              </div>
-            ))}
-          </div>
+      <section className="soft-section section-block">
+        <div className="section-shell">
+          <SectionIntro
+            align="center"
+            kicker={t("about", "whyUs", lang)}
+            title={
+              lang === "tr"
+                ? "Tedavi surecini sadece islem degil, butunsel bir deneyim olarak ele aliyoruz"
+                : "We approach treatment not just as a procedure, but as a complete experience"
+            }
+            subtitle={
+              lang === "tr"
+                ? "Klinik akis, bilgilendirme ve hasta konforu ayni tasarim diliyle bir araya gelir."
+                : "Clinical flow, communication, and patient comfort are brought together within one coherent design language."
+            }
+          />
         </div>
       </section>
     </>

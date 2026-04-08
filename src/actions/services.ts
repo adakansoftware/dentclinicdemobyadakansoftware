@@ -1,28 +1,55 @@
 "use server";
 
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { IMAGE_INPUT_SCHEMA_MESSAGE, isValidAssetInput, persistImageAsset } from "@/lib/upload-assets";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
+
+const SERVICE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+const SERVICE_IMAGE_MAX_BYTES = 4 * 1024 * 1024;
 
 const serviceSchema = z.object({
   slug: z
     .string()
     .min(2)
-    .regex(/^[a-z0-9-]+$/, "Slug sadece küçük harf, rakam ve tire içerebilir"),
-  nameTr: z.string().min(2, "Türkçe ad gerekli"),
-  nameEn: z.string().min(2, "İngilizce ad gerekli"),
-  shortDescTr: z.string().min(5, "Türkçe kısa açıklama gerekli"),
-  shortDescEn: z.string().min(5, "İngilizce kısa açıklama gerekli"),
-  descriptionTr: z.string().min(10, "Türkçe açıklama gerekli"),
-  descriptionEn: z.string().min(10, "İngilizce açıklama gerekli"),
+    .regex(/^[a-z0-9-]+$/, "Slug sadece kucuk harf, rakam ve tire icerebilir"),
+  nameTr: z.string().min(2, "Turkce ad gerekli"),
+  nameEn: z.string().min(2, "Ingilizce ad gerekli"),
+  shortDescTr: z.string().min(5, "Turkce kisa aciklama gerekli"),
+  shortDescEn: z.string().min(5, "Ingilizce kisa aciklama gerekli"),
+  descriptionTr: z.string().min(10, "Turkce aciklama gerekli"),
+  descriptionEn: z.string().min(10, "Ingilizce aciklama gerekli"),
   iconName: z.string().default("tooth"),
   durationMinutes: z.coerce.number().min(15).max(480),
   order: z.coerce.number().default(0),
   isActive: z.coerce.boolean().default(true),
-  imageUrl: z.string().optional().or(z.literal("")),
+  imageUrl: z.string().trim().refine(isValidAssetInput, IMAGE_INPUT_SCHEMA_MESSAGE).optional().or(z.literal("")),
 });
+
+async function resolveServiceImage(value: string | undefined, existingValue?: string | null) {
+  if (!value?.trim()) {
+    if (existingValue) {
+      await persistImageAsset({
+        category: "services",
+        value: "",
+        existingValue,
+        allowedMimeTypes: SERVICE_IMAGE_TYPES,
+        maxBytes: SERVICE_IMAGE_MAX_BYTES,
+      });
+    }
+    return null;
+  }
+
+  return persistImageAsset({
+    category: "services",
+    value,
+    existingValue,
+    allowedMimeTypes: SERVICE_IMAGE_TYPES,
+    maxBytes: SERVICE_IMAGE_MAX_BYTES,
+  });
+}
 
 export async function createServiceAction(
   _prev: ActionResult,
@@ -57,13 +84,23 @@ export async function createServiceAction(
   });
 
   if (exists) {
-    return { success: false, error: "Bu slug zaten kullanımda" };
+    return { success: false, error: "Bu slug zaten kullanimda" };
+  }
+
+  let imageUrl: string | null = null;
+  try {
+    imageUrl = await resolveServiceImage(parsed.data.imageUrl);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Gorsel kaydedilemedi.",
+    };
   }
 
   await prisma.service.create({
     data: {
       ...parsed.data,
-      imageUrl: parsed.data.imageUrl?.trim() ? parsed.data.imageUrl.trim() : null,
+      imageUrl,
     },
   });
 
@@ -110,14 +147,29 @@ export async function updateServiceAction(
   });
 
   if (conflict) {
-    return { success: false, error: "Bu slug zaten kullanımda" };
+    return { success: false, error: "Bu slug zaten kullanimda" };
+  }
+
+  const existing = await prisma.service.findUnique({
+    where: { id },
+    select: { imageUrl: true },
+  });
+
+  let imageUrl: string | null = null;
+  try {
+    imageUrl = await resolveServiceImage(parsed.data.imageUrl, existing?.imageUrl);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Gorsel kaydedilemedi.",
+    };
   }
 
   await prisma.service.update({
     where: { id },
     data: {
       ...parsed.data,
-      imageUrl: parsed.data.imageUrl?.trim() ? parsed.data.imageUrl.trim() : null,
+      imageUrl,
     },
   });
 
@@ -137,6 +189,21 @@ export async function deleteServiceAction(
 
   const id = formData.get("id") as string;
   if (!id) return { success: false, error: "ID gerekli" };
+
+  const existing = await prisma.service.findUnique({
+    where: { id },
+    select: { imageUrl: true },
+  });
+
+  if (existing?.imageUrl) {
+    await persistImageAsset({
+      category: "services",
+      value: "",
+      existingValue: existing.imageUrl,
+      allowedMimeTypes: SERVICE_IMAGE_TYPES,
+      maxBytes: SERVICE_IMAGE_MAX_BYTES,
+    });
+  }
 
   await prisma.service.delete({ where: { id } });
 
